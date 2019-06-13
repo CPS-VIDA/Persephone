@@ -22,7 +22,7 @@ function varargout = gui(varargin)
 
 % Edit the above text to modify the response to help gui
 
-% Last Modified by GUIDE v2.5 09-Jun-2019 21:34:15
+% Last Modified by GUIDE v2.5 13-Jun-2019 10:13:34
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -80,23 +80,60 @@ function pushbutton1_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-% --- Executes on selection change in popupmenu1.
-function popupmenu1_Callback(hObject, eventdata, handles)
-% hObject    handle to popupmenu1 (see GCBO)
+% --- Executes on selection change in select_sanity.
+function select_sanity_Callback(hObject, eventdata, handles)
+% hObject    handle to select_sanity (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu1 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from popupmenu1
+% Hints: contents = cellstr(get(hObject,'String')) returns select_sanity contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from select_sanity
 
 
 % --- Executes during object creation, after setting all properties.
-function popupmenu1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to popupmenu1 (see GCBO)
+function select_sanity_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to select_sanity (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
 % Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+set(hObject,'String',{'TQTL 1';'TQTL 2';'TQTL 3'});
+
+
+% --- Executes on button press in browse_file.
+function browse_file_Callback(hObject, eventdata, handles)
+% hObject    handle to browse_file (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% file_csv = uigetfile({'*.*','All Files'}, 'Select CSV file containing data stream');
+[baseName, folder] = uigetfile({'*.*','All Files'}, 'Select CSV file containing data stream');
+file_csv = fullfile(folder, baseName);
+rawdata = csvread(file_csv);
+handles.filename = file_csv;
+guidata(hObject, handles);
+selected_file_Callback(hObject, eventdata, handles);
+
+function selected_file_Callback(hObject, eventdata, handles)
+% hObject    handle to selected_file (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of selected_file as text
+%        str2double(get(hObject,'String')) returns contents of selected_file as a double
+myString = handles.filename;
+set(handles.selected_text, 'String', myString);
+
+% --- Executes during object creation, after setting all properties.
+function selected_file_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to selected_file (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
