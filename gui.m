@@ -88,7 +88,9 @@ function select_sanity_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns select_sanity contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from select_sanity
-
+contents = cellstr(get(hObject,'String'));
+selection = contents{get(hObject,'Value')};
+disp(selection);
 
 % --- Executes during object creation, after setting all properties.
 function select_sanity_CreateFcn(hObject, eventdata, handles)
@@ -101,7 +103,12 @@ function select_sanity_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-set(hObject,'String',{'TQTL 1';'TQTL 2';'TQTL 3'});
+tqtl_options = {'Permanence: a car remains a car across frames'; ...
+    'Kinematics: pedestrians do not move like Superman'; ...
+    'Correlations: pedestrian next to a bicycle may be a cyclist3'; ...
+    'Temporal Evolution: sizes of bounding boxes change in relation to motion'; ...
+    };
+set(hObject,'String',tqtl_options);
 
 
 % --- Executes on button press in browse_file.
