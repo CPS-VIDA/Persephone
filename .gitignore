@@ -28,29 +28,36 @@ codegen/
 # Octave session info
 octave-workspace
 
+#### c++ ####
+# Prerequisites
+*.d
 
-#### vim ####
-# Swap
-[._]*.s[a-v][a-z]
-[._]*.sw[a-p]
-[._]s[a-rt-v][a-z]
-[._]ss[a-gi-z]
-[._]sw[a-p]
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
 
-# Session
-Session.vim
+# Precompiled Headers
+*.gch
+*.pch
 
-# Temporary
-.netrwhist
-*~
-# Auto-generated tag files
-tags
-# Persistent undo
-[._]*.un~
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
 
-#### visualstudiocode ####
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
