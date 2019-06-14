@@ -22,7 +22,7 @@ function varargout = gui(varargin)
 
 % Edit the above text to modify the response to help gui
 
-% Last Modified by GUIDE v2.5 13-Jun-2019 10:13:34
+% Last Modified by GUIDE v2.5 14-Jun-2019 11:08:41
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -140,6 +140,45 @@ set(handles.selected_text, 'String', myString);
 % --- Executes during object creation, after setting all properties.
 function selected_file_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to selected_file (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in run_button.
+function run_button_Callback(hObject, eventdata, handles)
+% hObject    handle to run_button (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% TODO:
+Pred(1).str = 'p1';
+Pred(1).A = [1];
+Pred(1).b = handles.b;
+phi = '[] (p1)';
+seqS = [0.1, 0.2, 0.3]';
+seqT = [0, 0.1, 0.2]';
+Persephone.monitor(phi, Pred, seqS, seqT);
+
+
+
+function thresh_b_Callback(hObject, eventdata, handles)
+% hObject    handle to thresh_b (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of thresh_b as text
+%        str2double(get(hObject,'String')) returns contents of thresh_b as a double
+handles.b = str2double(get(hObject,'String'));
+
+% --- Executes during object creation, after setting all properties.
+function thresh_b_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to thresh_b (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
