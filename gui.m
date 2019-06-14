@@ -73,13 +73,6 @@ function varargout = gui_OutputFcn(hObject, eventdata, handles)
 varargout{1} = handles.output;
 
 
-% --- Executes on button press in pushbutton1.
-function pushbutton1_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
 % --- Executes on selection change in select_sanity.
 function select_sanity_Callback(hObject, eventdata, handles)
 % hObject    handle to select_sanity (see GCBO)
@@ -91,6 +84,16 @@ function select_sanity_Callback(hObject, eventdata, handles)
 contents = cellstr(get(hObject,'String'));
 selection = contents{get(hObject,'Value')};
 disp(selection);
+tqtl_descriptions = {'1. At every time step, a car remains a car across frames';
+    '2. pedestrians do not move like Superman';
+    '3. pedestrian next to a bicycle may be a cyclist';
+    ['4. At every time step, for all the objects (id1) in the frame, ', ...
+    'if the object class is cyclist with probability more than 0.7, ', ...
+    'then in the next 5 frames the object id1 should still be classified ', ...
+    'as a cyclist with probability more than 0.6. '];
+    };
+set(handles.tqtl_desc, 'String', tqtl_descriptions{get(hObject,'Value')});
+
 
 % --- Executes during object creation, after setting all properties.
 function select_sanity_CreateFcn(hObject, eventdata, handles)
