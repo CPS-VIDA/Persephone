@@ -86,7 +86,7 @@ selection = contents{get(hObject,'Value')};
 disp(selection);
 tqtl_descriptions = {'1. At every time step, a car remains a car across frames';
     '2. pedestrians do not move like Superman';
-    '3. pedestrian next to a bicycle may be a cyclist';
+    '3. phi := [] (p1)';
     ['4. At every time step, for all the objects (id1) in the frame, ', ...
     'if the object class is cyclist with probability more than 0.7, ', ...
     'then in the next 5 frames the object id1 should still be classified ', ...
@@ -122,7 +122,7 @@ function browse_file_Callback(hObject, eventdata, handles)
 % file_csv = uigetfile({'*.*','All Files'}, 'Select CSV file containing data stream');
 [baseName, folder] = uigetfile({'*.*','All Files'}, 'Select CSV file containing data stream');
 file_csv = fullfile(folder, baseName);
-rawdata = csvread(file_csv);
+handles.rawdata = readmatrix(file_csv);
 handles.filename = file_csv;
 guidata(hObject, handles);
 selected_file_Callback(hObject, eventdata, handles);
@@ -161,9 +161,9 @@ Pred(1).str = 'p1';
 Pred(1).A = [1];
 Pred(1).b = handles.b;
 phi = '[] (p1)';
-seqS = [0.1, 0.2, 0.3]';
-seqT = [0, 0.1, 0.2]';
-Persephone.monitor(phi, Pred, seqS, seqT);
+seqS = handles.rawdata;
+[rob, aux] = Persephone.monitor(phi, Pred, seqS);
+set(handles.rob_result, 'String', num2str(rob));
 
 
 
@@ -175,6 +175,7 @@ function thresh_b_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of thresh_b as text
 %        str2double(get(hObject,'String')) returns contents of thresh_b as a double
 handles.b = str2double(get(hObject,'String'));
+guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
 function thresh_b_CreateFcn(hObject, eventdata, handles)
