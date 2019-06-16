@@ -27,11 +27,11 @@ function varargout = gui(varargin)
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @gui_OpeningFcn, ...
-                   'gui_OutputFcn',  @gui_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
+    'gui_Singleton',  gui_Singleton, ...
+    'gui_OpeningFcn', @gui_OpeningFcn, ...
+    'gui_OutputFcn',  @gui_OutputFcn, ...
+    'gui_LayoutFcn',  [] , ...
+    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
@@ -63,7 +63,7 @@ guidata(hObject, handles);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = gui_OutputFcn(hObject, eventdata, handles) 
+function varargout = gui_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -91,23 +91,28 @@ opt1_desc = [...
     'the algorithm continues detecting the car with probability "b" for the next 5 frames. ', newline, newline,...
     'phi := []( @ Var_x ( car_a -> []( ({ Var_x>=0 }/\{ Var_x<=5 } ) -> car_b ) ) ).', newline, ...
     'The two configurable parameters "a" and "b" (denoted by "car_a" and "car_b" above), can be set below (first two boxes).'];
- 
+
 opt2_desc = [...
     'Pedestrians should not move like Superman.', newline,...
     'Here, we check if a pedestrian is detected and ...']; %TODO(andy): Explain...
 
 opt3_desc = [...
-    'Here, we check that if a cyclist is was previously classified correctly with high probability "a", they may be detected as a pedestrian due to vision constraints. Thus, we check if the probability remains greater then "b" for the next 6 frames for both, cyclist and pedestrian.', newline, newline,...
-    'phi := []( @ Var_x ( cycle_a -> [](  ( { Var_x>=0 }/\{ Var_x<=5 } ) -> ( cycle_b \/ ( data /\ ped_b ) ) )  ) )', newline, ...
-    'Configure "a" and "b" using the first two boxes below.'
+    'Here, we check that if a cyclist is was previously classified correctly '...,
+    'with high probability "a", they may be detected as a pedestrian due to '...,
+    'vision constraints. Thus, we check if the probability remains greater '...,
+    'then "b" for the next 6 frames for both, cyclist and pedestrian (if the boxes are close together).', newline, newline,...
+    'phi := []( @ Var_x ( cycle_a -> [](  ( { Var_x>=0 }/\{ Var_x<=5 } ) -> ( cycle_b \/ ( close_c /\ ped_b ) ) )  ) )', newline, ...
+    'Configure "a" and "b" using the first two boxes below. The third box helps specify a distance threshold between the boxes.'
     ];
 
-tqtl_descriptions = {opt1_desc; opt2_desc; opt3_desc;
-    ['4. At every time step, for all the objects (id1) in the frame, ', ...
+opt4_desc = [...
+    'At every time step, for all the objects (id1) in the frame, ', ...
     'if the object class is cyclist with probability more than 0.7, ', ...
     'then in the next 5 frames the object id1 should still be classified ', ...
-    'as a cyclist with probability more than 0.6. '];
-    };
+    'as a cyclist with probability more than 0.6. '
+    ];
+
+tqtl_descriptions = {opt1_desc; opt2_desc; opt3_desc; opt4_desc;};
 set(handles.tqtl_desc, 'String', tqtl_descriptions{get(hObject,'Value')});
 
 
@@ -172,15 +177,185 @@ function run_button_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% TODO:
-Pred(1).str = 'p1';
-Pred(1).A = [1];
-Pred(1).b = handles.b;
-phi = '[] (p1)';
-seqS = handles.rawdata;
-[rob, aux] = Persephone.monitor(phi, Pred, seqS);
-set(handles.rob_result, 'String', num2str(rob));
+%% Preprocessing
+% CSV Data provided is of the form: 
+% Frame Index, xmin, ymin, xmax, ymax, label, probability
+%
+% This must first be made into a form that can easily be used to setup the
+% predicates and the Monitor.
 
+% First get the raw data
+rawdata = handles.rawdata;
+[rawdata_rows, ~] = size(rawdata);
+% Let's convert the data from a matrix to an array of structs
+data_array = {};
+prev_idx = 0;
+boxes = [];
+max_idx = 0;
+for i = 1:rawdata_rows
+    idx = rawdata(i,1);
+    if prev_idx + 1 == idx
+        data_array{prev_idx,1}=boxes;
+        boxes = [];
+    end
+    data_xmin = rawdata(i,2);
+    data_ymin = rawdata(i,3);
+    data_xmax = rawdata(i,4);
+    data_ymax = rawdata(i,5);
+    label_type = rawdata(i, 6);
+    probability = rawdata(i, 7);
+    data_center = [(data_xmin+data_xmax)/2,(data_ymin+data_ymax)/2];
+    
+    box=struct(...
+        'label', label_type,...
+        'probability',probability,...
+        'left',data_xmin,'top',data_ymin,'right',data_xmax,'bottom',data_ymax,...
+        'center',data_center);
+    boxes = [boxes; box];
+    max_idx = idx;
+end
+% Now, data_array contains a cell aray indexing frame to all the boxes
+% (structs) detected in that frame.
+
+%% Specific Processing of data and dispatching to Persephone.monitor
+selected_opt = get(hObject,'Value');
+switch selected_opt
+    case 1
+        [phi, Pred, SeqS] = tqtl_opt1(data_array, max_idx, handle);
+        [rob, aux] = Persephone.monitor(phi, Pred, seqS);
+        set(handles.rob_result, 'String', num2str(rob));
+    case 2
+        % TODO(andy): Superman...
+    case 3
+        % Cyclist-pedestrian misclassification
+        phi ='[]( @ Var_x ( cycle_a -> [](  ( { Var_x>=0 }/\{ Var_x<=5 } ) -> ( cycle_b \/ ( close /\ ped_b ) ) )  ) )';
+        
+        Pred(1).str = 'cycl07';
+        Pred(1).A = [-1 0];
+        Pred(1).b = [-handles.thresh_b1];
+        Pred(2).str = 'cycl06';
+        Pred(2).A = [-1 0];
+        Pred(2).b = [-handles.thresh_b2];
+        Pred(3).str = 'data';
+        Pred(3).A = [0 -1;0 1];
+        Pred(3).b = [0;40];
+        Pred(4).str = 'ped06';
+        Pred(4).A = [0 -1];
+        Pred(4).b = [-0.6];
+    case 4
+        % TODO(andy): Temporal Evolution
+end
+
+% -- Individual dispatches.
+function [phi, Pred, SeqS] = tqtl_opt1(data_array, max_idx, handle)
+% Setup opt1
+% Car permanance: Rip off from DATE2019 Cyclist demo
+probs =[];
+for i= 1: max_idx
+    p=0;
+    sz=size(data_array{i});
+    for j=1:sz(1)
+        if strcmp(data_array{i}(j).type,'car')
+            p=data_array{i}(j).probability;
+        end
+    end
+    probs =[probs;p];
+end
+phi = 'phi := []( @ Var_x ( car_a -> []( ({ Var_x>=0 }/\{ Var_x<=5 } ) -> car_b ) ) )';
+Pred(1).str = 'car_a';
+Pred(1).A = [-1 0];
+Pred(1).b = [-handle.thresh_b1];
+Pred(2).str = 'car_b';
+Pred(2).A = [-1 0];
+Pred(2).b = [-handle.thresh_b2];
+SeqS=[probs, probs];
+
+function [phi, Pred, SeqS] = tqtl_opt2(data_array, max_idx, handle)
+% Setup opt2
+% TODO(andy): Superman
+probs =[];
+for i= 1: max_idx
+    p=0;
+    sz=size(data_array{i});
+    for j=1:sz(1)
+        if strcmp(data_array{i}(j).type,'cyclist')
+            p=data_array{i}(j).probability;
+        end
+    end
+    probs =[probs;p];
+end
+phi = 'phi := []( @ Var_x ( car_a -> []( ({ Var_x>=0 }/\{ Var_x<=5 } ) -> car_b ) ) )';
+Pred(1).str = 'car_a';
+Pred(1).A = [-1 0];
+Pred(1).b = [-handle.thresh_b1];
+Pred(2).str = 'car_b';
+Pred(2).A = [-1 0];
+Pred(2).b = [-handle.thresh_b2];
+SeqS=[probs, probs];
+
+function [phi, Pred, SeqS] = tqtl_opt3(data_array, max_idx, handle)
+% Setup opt3
+% Misclassification: Ripoff of DATE2019 demo
+
+cyclistProb=[];
+cyclistCenter=[];
+for i= 1: max_idx
+    p=0;
+    c=[0,0];
+    sz=size(data_array{i});
+    for j=1:sz(1)
+        if strcmp(data_array{i}(j).type,'cyclist')
+            p=data_array{i}(j).probability;
+            c=data_array{i}(j).center;
+        end
+    end
+    cyclistProb=[cyclistProb;p];
+    cyclistCenter=[cyclistCenter;c];
+end
+pedestrianProb=[];
+pedestrianCenter=[];
+for i=start + 1: indexEnd + 1
+    p=0;
+    c=[0,0];
+    sz=size(Squeeze_Det{i});
+    for j=1:sz(1)
+        if strcmp(Squeeze_Det{i}(j).type,'pedestrian')
+            p=Squeeze_Det{i}(j).probability;
+            c=Squeeze_Det{i}(j).center;
+        end
+    end
+    pedestrianProb=[pedestrianProb;p];
+    pedestrianCenter=[pedestrianCenter;c];
+end
+dist=zeros( indexEnd + 1, indexEnd + 1);
+for i=start + 1: indexEnd + 1
+    if cyclistProb(i)==0
+        dist(i,:)=-500000;
+        continue;
+    end
+    for j=start + 1: indexEnd + 1
+       if pedestrianProb(j)==0
+           dist(i,j)=-500000;
+       else
+           dist(i,j)=pdist([cyclistCenter(i,:);pedestrianCenter(j,:)],'euclidean');
+       end
+    end
+end
+
+phi='[]( @ Var_x ( cycle_a -> [](  ( { Var_x>=0 }/\{ Var_x<=5 } ) -> ( cycle_b \/ ( close_c /\ ped_b ) ) )  ) )';
+Pred(1).str = 'cycle_a';
+Pred(1).A = [-1 0];
+Pred(1).b = [-handle.thresh_b1];
+Pred(2).str = 'cycle_b';
+Pred(2).A = [-1 0];
+Pred(2).b = [-handle.thresh_b2];
+Pred(3).str = 'close_c';
+Pred(3).A = [0 -1;0 1];
+Pred(3).b = [0;handle.thresh_b3];
+Pred(4).str = 'ped_b';
+Pred(4).A = [0 -1];
+Pred(4).b = [-handle.thresh_b2];
+SeqS=[cyclistProb,pedestrianProb];
 
 
 function thresh_b1_Callback(hObject, eventdata, handles)
