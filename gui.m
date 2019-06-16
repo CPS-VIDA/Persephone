@@ -22,7 +22,7 @@ function varargout = gui(varargin)
 
 % Edit the above text to modify the response to help gui
 
-% Last Modified by GUIDE v2.5 15-Jun-2019 19:19:15
+% Last Modified by GUIDE v2.5 14-Jun-2019 11:08:41
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -82,21 +82,32 @@ function select_sanity_Callback(hObject, eventdata, handles)
 % Hints: contents = cellstr(get(hObject,'String')) returns select_sanity contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from select_sanity
 contents = cellstr(get(hObject,'String'));
-selection = contents{get(hObject,'Value')}; % get name of selected of the tqtl spec in drop-down menu
-handles.idx = get(hObject,'Value'); % get index of the selected tqtl
-guidata(hObject, handles); % update the gui handles structure
+selection = contents{get(hObject,'Value')};
+% disp(selection);
 
-% Description of all corresponding TQTLs
-tqtl_descriptions = {'At every time step, a car remains a car across frames';
-    'Pedestrians do not move like Superman';
-    'phi := [] (p1)';
-    ['At every time step, for all the objects (id1) in the frame, ', ...
+opt1_desc = [...
+    'At every time step, a car remains a car across frames. ', newline, ...
+    'Here, if the object tracking algorithm detects a car with probability greater than "a", ', ...
+    'the algorithm continues detecting the car with probability "b" for the next 5 frames. ', newline, newline,...
+    'phi := []( @ Var_x ( car_a -> []( ({ Var_x>=0 }/\{ Var_x<=5 } ) -> car_b ) ) ).', newline, ...
+    'The two configurable parameters "a" and "b" (denoted by "car_a" and "car_b" above), can be set below (first two boxes).'];
+ 
+opt2_desc = [...
+    'Pedestrians should not move like Superman.', newline,...
+    'Here, we check if a pedestrian is detected and ...']; %TODO(andy): Explain...
+
+opt3_desc = [...
+    'Here, we check that if a cyclist is was previously classified correctly with high probability "a", they may be detected as a pedestrian due to vision constraints. Thus, we check if the probability remains greater then "b" for the next 6 frames for both, cyclist and pedestrian.', newline, newline,...
+    'phi := []( @ Var_x ( cycle_a -> [](  ( { Var_x>=0 }/\{ Var_x<=5 } ) -> ( cycle_b \/ ( data /\ ped_b ) ) )  ) )', newline, ...
+    'Configure "a" and "b" using the first two boxes below.'
+    ];
+
+tqtl_descriptions = {opt1_desc; opt2_desc; opt3_desc;
+    ['4. At every time step, for all the objects (id1) in the frame, ', ...
     'if the object class is cyclist with probability more than 0.7, ', ...
     'then in the next 5 frames the object id1 should still be classified ', ...
     'as a cyclist with probability more than 0.6. '];
     };
-
-% Show the descriptions in GUI in the large text box
 set(handles.tqtl_desc, 'String', tqtl_descriptions{get(hObject,'Value')});
 
 
@@ -111,12 +122,10 @@ function select_sanity_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-% Initialize the drop-down selection with all specs
-tqtl_options = {'1. Permanence: a car remains a car across frames'; ...
-    '2. Kinematics: pedestrians do not move like Superman'; ...
-    '3. Correlations: pedestrian next to a bicycle may be a cyclist'; ...
-    '4. Temporal Evolution: sizes of bounding boxes change in relation to motion'; ...
+tqtl_options = {'Permanence: a car remains a car across frames.'; ...
+    'Kinematics: pedestrians do not move like Superman.'; ... % TODO(andy): I am not sure how to do this
+    'Misclassification: A cyclist may be detected as a pedestrian.'; ...
+    'Temporal Evolution: sizes of bounding boxes change in relation to motion.'; ... % TODO(andy): I am not sure how to do this
     };
 set(hObject,'String',tqtl_options);
 
@@ -128,10 +137,10 @@ function browse_file_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 % file_csv = uigetfile({'*.*','All Files'}, 'Select CSV file containing data stream');
 [baseName, folder] = uigetfile({'*.*','All Files'}, 'Select CSV file containing data stream');
-file_csv = fullfile(folder, baseName); % full path to the csv file
-handles.rawdata = readmatrix(file_csv); % read csv file
-handles.filename = file_csv; % name of the csv file
-guidata(hObject, handles); % update the GUI data
+file_csv = fullfile(folder, baseName);
+handles.rawdata = readmatrix(file_csv);
+handles.filename = file_csv;
+guidata(hObject, handles);
 selected_file_Callback(hObject, eventdata, handles);
 
 function selected_file_Callback(hObject, eventdata, handles)
@@ -141,7 +150,7 @@ function selected_file_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of selected_file as text
 %        str2double(get(hObject,'String')) returns contents of selected_file as a double
-myString = handles.filename; % show the chosen file in text box
+myString = handles.filename;
 set(handles.selected_text, 'String', myString);
 
 % --- Executes during object creation, after setting all properties.
@@ -163,47 +172,30 @@ function run_button_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Index of selected TQTL
-% fprintf("Index of selected TQTL: %d\n", handles.idx)
-
-% ==============
-% TODO (Anand): 
-% Index is available in 'handles.idx'
-% Create multiple if conditions to choose spec
+% TODO:
 Pred(1).str = 'p1';
 Pred(1).A = [1];
-Pred(1).b = handles.b1;
+Pred(1).b = handles.b;
 phi = '[] (p1)';
-% ==============
-
-% Raw data from CSV
 seqS = handles.rawdata;
-
-% Call the Persephone monitor
 [rob, aux] = Persephone.monitor(phi, Pred, seqS);
-
-% Print the results in text box
 set(handles.rob_result, 'String', num2str(rob));
 
 
 
 function thresh_b1_Callback(hObject, eventdata, handles)
-% hObject    handle to thresh_b1 (see GCBO)
+% hObject    handle to thresh_b (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of thresh_b1 as text
-%        str2double(get(hObject,'String')) returns contents of thresh_b1 as a double
-b1 = str2double(get(hObject,'String')); % Value of threshold 1
-if isnan(b1)
-    b1 = 0.0; % Default 0.0 if not entered in GUI
-end
-handles.b1 = b1;
+% Hints: get(hObject,'String') returns contents of thresh_b as text
+%        str2double(get(hObject,'String')) returns contents of thresh_b as a double
+handles.b = str2double(get(hObject,'String'));
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
 function thresh_b1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to thresh_b1 (see GCBO)
+% hObject    handle to thresh_b (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -212,28 +204,21 @@ function thresh_b1_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-handles.b1 = 0.0; % Default 0.0 if not entered in GUI
-guidata(hObject, handles);
 
 
 function thresh_b2_Callback(hObject, eventdata, handles)
-% hObject    handle to thresh_b2 (see GCBO)
+% hObject    handle to thresh_b (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of thresh_b2 as text
-%        str2double(get(hObject,'String')) returns contents of thresh_b2 as a double
-b2 = str2double(get(hObject,'String')); % Value of threshold 2
-if isnan(b2)
-    b2 = 0.0; % Default 0.0 if not entered in GUI
-end
-handles.b2 = b2;
+% Hints: get(hObject,'String') returns contents of thresh_b as text
+%        str2double(get(hObject,'String')) returns contents of thresh_b as a double
+handles.b = str2double(get(hObject,'String'));
 guidata(hObject, handles);
-
 
 % --- Executes during object creation, after setting all properties.
 function thresh_b2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to thresh_b2 (see GCBO)
+% hObject    handle to thresh_b (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -242,27 +227,21 @@ function thresh_b2_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-handles.b2 = 0.0; % Default 0.0 if not entered in GUI
-guidata(hObject, handles);
 
 
 function thresh_b3_Callback(hObject, eventdata, handles)
-% hObject    handle to thresh_b3 (see GCBO)
+% hObject    handle to thresh_b (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of thresh_b3 as text
-%        str2double(get(hObject,'String')) returns contents of thresh_b3 as a double
-b3 = str2double(get(hObject,'String')); % Value of threshold 3
-if isnan(b3) 
-    b3 = 0.0; % Default 0.0 if not entered in GUI
-end
-handles.b3 = b3;
+% Hints: get(hObject,'String') returns contents of thresh_b as text
+%        str2double(get(hObject,'String')) returns contents of thresh_b as a double
+handles.b = str2double(get(hObject,'String'));
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
 function thresh_b3_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to thresh_b3 (see GCBO)
+% hObject    handle to thresh_b (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -271,5 +250,3 @@ function thresh_b3_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-handles.b3 = 0; % Default 0.0 if not entered in GUI
-guidata(hObject, handles);
