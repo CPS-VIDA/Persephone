@@ -86,21 +86,23 @@ selection = contents{get(hObject,'Value')};
 % disp(selection);
 
 opt1_desc = [...
-    'At every time step, a car remains a car across frames. ', newline, ...
-    'Here, if the object tracking algorithm detects a car with probability greater than "a", ', ...
-    'the algorithm continues detecting the car with probability "b" for the next 5 frames. ', newline, newline,...
-    'phi := []( @ Var_x ( car_a -> []( ({ Var_x>=0 }/\{ Var_x<=5 } ) -> car_b ) ) ).', newline, ...
-    'The two configurable parameters "a" and "b" (denoted by "car_a" and "car_b" above), can be set below (first two boxes).'];
+    'At every time step, a cyclist remains a cyclist across frames. ', newline, ...
+    'Here, if the object tracking algorithm detects a cyclist with probability greater than "a", ', ...
+    'the algorithm continues detecting the cyclist with probability "b" for the next 5 frames. ', newline, newline,...
+    'phi := []( @ Var_x ( cyclist_a -> []( ({ Var_x>=0 }/\{ Var_x<=5 } ) -> cyclist_b ) ) ).', newline, ...
+    'The two configurable parameters "a" and "b" (denoted by "cyclist_a" and "cyclist_b" above), can be set below (first two boxes).'];
 
 opt2_desc = [...
     'Pedestrians should not move like Superman.', newline,...
-    'Here, we check if a pedestrian is detected and ...']; %TODO(andy): Explain...
+    'Here, we check if a pedestrian is detected and if so, the pedestrian must also be detected in the next 10 frames. ', newline, ...
+    'phi := []( @ Var_x ( pedestrian_a -> []( ({ Var_x>=0 }/\{ Var_x<=10 } ) -> pedestrian_b ) ) ).', newline, ...
+    ];
 
 opt3_desc = [...
     'Here, we check that if a cyclist is was previously classified correctly '...,
     'with high probability "a", they may be detected as a pedestrian due to '...,
     'vision constraints. Thus, we check if the probability remains greater '...,
-    'then "b" for the next 6 frames for both, cyclist and pedestrian (if the boxes are close together).', newline, newline,...
+    'than "b" for the next 6 frames for both, cyclist and pedestrian (if the boxes are close together).', newline, newline,...
     'phi := []( @ Var_x ( cycle_a -> [](  ( { Var_x>=0 }/\{ Var_x<=5 } ) -> ( cycle_b \/ ( close_c /\ ped_b ) ) )  ) )', newline, ...
     'Configure "a" and "b" using the first two boxes below. The third box helps specify a distance threshold between the boxes.'
     ];
@@ -127,8 +129,8 @@ function select_sanity_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-tqtl_options = {'Permanence: a car remains a car across frames.'; ...
-    'Kinematics: pedestrians do not move like Superman.'; ... % TODO(andy): I am not sure how to do this
+tqtl_options = {'Permanence: a cyclist remains a cyclist across frames.'; ...
+    'Kinematics: pedestrians do not move like Superman.';
     'Misclassification: A cyclist may be detected as a pedestrian.'; ...
     'Temporal Evolution: sizes of bounding boxes change in relation to motion.'; ... % TODO(andy): I am not sure how to do this
     };
@@ -178,7 +180,7 @@ function run_button_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 %% Preprocessing
-% CSV Data provided is of the form: 
+% CSV Data provided is of the form:
 % Frame Index, xmin, ymin, xmax, ymax, label, probability
 %
 % This must first be made into a form that can easily be used to setup the
@@ -225,7 +227,9 @@ switch selected_opt
         [rob, aux] = Persephone.monitor(phi, Pred, seqS);
         set(handles.rob_result, 'String', num2str(rob));
     case 2
-        % TODO(andy): Superman...
+        [phi, Pred, SeqS] = tqtl_opt2(data_array, max_idx, handle);
+        [rob, aux] = Persephone.monitor(phi, Pred, seqS);
+        set(handles.rob_result, 'String', num2str(rob));
     case 3
         % Cyclist-pedestrian misclassification
         phi ='[]( @ Var_x ( cycle_a -> [](  ( { Var_x>=0 }/\{ Var_x<=5 } ) -> ( cycle_b \/ ( close /\ ped_b ) ) )  ) )';
@@ -246,7 +250,7 @@ switch selected_opt
         % TODO(andy): Temporal Evolution
 end
 
-% -- Individual dispatches.
+%% -- Individual dispatches.
 function [phi, Pred, SeqS] = tqtl_opt1(data_array, max_idx, handle)
 % Setup opt1
 % Car permanance: Rip off from DATE2019 Cyclist demo
@@ -261,18 +265,17 @@ for i= 1: max_idx
     end
     probs =[probs;p];
 end
-phi = 'phi := []( @ Var_x ( car_a -> []( ({ Var_x>=0 }/\{ Var_x<=5 } ) -> car_b ) ) )';
-Pred(1).str = 'car_a';
+phi = 'phi := []( @ Var_x ( cyclist_a -> []( ({ Var_x>=0 }/\{ Var_x<=5 } ) -> cyclist_b ) ) )';
+Pred(1).str = 'cyclist_a';
 Pred(1).A = [-1 0];
 Pred(1).b = [-handle.thresh_b1];
-Pred(2).str = 'car_b';
+Pred(2).str = 'cyclist_b';
 Pred(2).A = [-1 0];
 Pred(2).b = [-handle.thresh_b2];
 SeqS=[probs, probs];
 
 function [phi, Pred, SeqS] = tqtl_opt2(data_array, max_idx, handle)
 % Setup opt2
-% TODO(andy): Superman
 probs =[];
 for i= 1: max_idx
     p=0;
@@ -284,11 +287,11 @@ for i= 1: max_idx
     end
     probs =[probs;p];
 end
-phi = 'phi := []( @ Var_x ( car_a -> []( ({ Var_x>=0 }/\{ Var_x<=5 } ) -> car_b ) ) )';
-Pred(1).str = 'car_a';
+phi = 'phi := []( @ Var_x ( pedestrian_a -> []( ({ Var_x>=0 }/\{ Var_x<=10 } ) -> pedestrian_b ) ) )';
+Pred(1).str = 'pedestrian_a';
 Pred(1).A = [-1 0];
 Pred(1).b = [-handle.thresh_b1];
-Pred(2).str = 'car_b';
+Pred(2).str = 'pedestrian_b';
 Pred(2).A = [-1 0];
 Pred(2).b = [-handle.thresh_b2];
 SeqS=[probs, probs];
@@ -334,11 +337,11 @@ for i=start + 1: indexEnd + 1
         continue;
     end
     for j=start + 1: indexEnd + 1
-       if pedestrianProb(j)==0
-           dist(i,j)=-500000;
-       else
-           dist(i,j)=pdist([cyclistCenter(i,:);pedestrianCenter(j,:)],'euclidean');
-       end
+        if pedestrianProb(j)==0
+            dist(i,j)=-500000;
+        else
+            dist(i,j)=pdist([cyclistCenter(i,:);pedestrianCenter(j,:)],'euclidean');
+        end
     end
 end
 
