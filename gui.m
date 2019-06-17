@@ -83,7 +83,7 @@ function select_sanity_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from select_sanity
 contents = cellstr(get(hObject,'String'));
 selection = contents{get(hObject,'Value')};
-% disp(selection);
+handles.select_opt = get(hObject,'Value');
 
 opt1_desc = [...
     'At every time step, a cyclist remains a cyclist across frames. ', newline, ...
@@ -116,6 +116,7 @@ opt4_desc = [...
 
 tqtl_descriptions = {opt1_desc; opt2_desc; opt3_desc; opt4_desc;};
 set(handles.tqtl_desc, 'String', tqtl_descriptions{get(hObject,'Value')});
+guidata(hObject, handles);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -196,7 +197,7 @@ boxes = [];
 max_idx = 0;
 for i = 1:rawdata_rows
     idx = rawdata(i,1);
-    if prev_idx + 1 == idx
+    if prev_idx ~= idx
         data_array{prev_idx+1,1}=boxes;
         boxes = [];
         prev_idx = idx;
@@ -215,26 +216,29 @@ for i = 1:rawdata_rows
         'left',data_xmin,'top',data_ymin,'right',data_xmax,'bottom',data_ymax,...
         'center',data_center);
     boxes = [boxes; box];
-    max_idx = idx;
+    max_idx = idx-1;
 end
 % Now, data_array contains a cell aray indexing frame to all the boxes
 % (structs) detected in that frame.
 
 %% Specific Processing of data and dispatching to Persephone.monitor
-selected_opt = get(hObject,'Value');
+selected_opt = handles.select_opt;
 switch selected_opt
     case 1
+        disp('Case 1');
         [phi, Pred, seqS] = tqtl_opt1(data_array, max_idx, handles);
         [rob, aux] = Persephone.monitor(phi, Pred, seqS);
         set(handles.rob_result, 'String', num2str(rob));
     case 2
+        disp('Case 2');
         [phi, Pred, seqS] = tqtl_opt2(data_array, max_idx, handles);
         [rob, aux] = Persephone.monitor(phi, Pred, seqS);
         set(handles.rob_result, 'String', num2str(rob));
     case 3
+        disp('Case 3');
         % Cyclist-pedestrian misclassification
         phi ='[]( @ Var_x ( cycle_a -> [](  ( { Var_x>=0 }/\{ Var_x<=5 } ) -> ( cycle_b \/ ( close /\ ped_b ) ) )  ) )';
-        
+
         Pred(1).str = 'cycl07';
         Pred(1).A = [-1 0];
         Pred(1).b = [-handles.thresh_b1];
@@ -266,7 +270,8 @@ for i= 1: max_idx
     end
     probs =[probs;p];
 end
-phi = 'phi := []( @ Var_x ( car_a -> []( ({ Var_x>=0 }/\{ Var_x<=5 } ) -> car_b ) ) )';
+% phi = '[]( @ Var_x ( car_a -> []( ({ Var_x>=0 }/\{ Var_x<=5 } ) -> car_b ) ) )';
+phi = '[]( car_a -> ([]_[0,5] car_b) )';
 Pred(1).str = 'car_a';
 Pred(1).A = [-1 0];
 Pred(1).b = [-1*handles.thresh_b1];
@@ -283,13 +288,14 @@ for i= 1: max_idx
     p=0;
     sz=size(data_array{i});
     for j=1:sz(1)
-        if strcmp(data_array{i}(j).type,'cyclist')
+        if strcmp(data_array{i}(j).label,'cyclist')
             p=data_array{i}(j).probability;
         end
     end
     probs =[probs;p];
 end
-phi = 'phi := []( @ Var_x ( pedestrian_a -> []( ({ Var_x>=0 }/\{ Var_x<=10 } ) -> pedestrian_b ) ) )';
+% phi = 'phi := []( @ Var_x ( pedestrian_a -> []( ({ Var_x>=0 }/\{ Var_x<=10 } ) -> pedestrian_b ) ) )';
+phi = '[]( pedestrian_a -> ([]_[0,10] pedestrian_b) )';
 Pred(1).str = 'pedestrian_a';
 Pred(1).A = [-1 0];
 Pred(1).b = [-1*handles.thresh_b1];
@@ -301,7 +307,7 @@ SeqS=[probs, probs];
 function [phi, Pred, SeqS] = tqtl_opt3(data_array, max_idx, handles)
 % Setup opt3
 % Misclassification: Ripoff of DATE2019 demo
-
+disp('lol');
 cyclistProb=[];
 cyclistCenter=[];
 for i= 1: max_idx
@@ -309,7 +315,7 @@ for i= 1: max_idx
     c=[0,0];
     sz=size(data_array{i});
     for j=1:sz(1)
-        if strcmp(data_array{i}(j).type,'cyclist')
+        if strcmp(data_array{i}(j).label,'cyclist')
             p=data_array{i}(j).probability;
             c=data_array{i}(j).center;
         end
@@ -324,7 +330,7 @@ for i=start + 1: indexEnd + 1
     c=[0,0];
     sz=size(Squeeze_Det{i});
     for j=1:sz(1)
-        if strcmp(Squeeze_Det{i}(j).type,'pedestrian')
+        if strcmp(Squeeze_Det{i}(j).label,'pedestrian')
             p=Squeeze_Det{i}(j).probability;
             c=Squeeze_Det{i}(j).center;
         end
@@ -347,7 +353,8 @@ for i=start + 1: indexEnd + 1
     end
 end
 
-phi='[]( @ Var_x ( cycle_a -> [](  ( { Var_x>=0 }/\{ Var_x<=5 } ) -> ( cycle_b \/ ( close_c /\ ped_b ) ) )  ) )';
+% phi='[]( @ Var_x ( cycle_a -> [](  ( { Var_x>=0 }/\{ Var_x<=5 } ) -> ( cycle_b \/ ( close_c /\ ped_b ) ) )  ) )';
+phi='[]( cycle_a -> []_[0,5]( cycle_b \/ ( close_c /\ ped_b ) ) )';
 Pred(1).str = 'cycle_a';
 Pred(1).A = [-1 0];
 Pred(1).b = [-1*handles.thresh_b1];
