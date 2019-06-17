@@ -223,11 +223,11 @@ end
 selected_opt = get(hObject,'Value');
 switch selected_opt
     case 1
-        [phi, Pred, SeqS] = tqtl_opt1(data_array, max_idx, handle);
+        [phi, Pred, SeqS] = tqtl_opt1(data_array, max_idx, handles);
         [rob, aux] = Persephone.monitor(phi, Pred, seqS);
         set(handles.rob_result, 'String', num2str(rob));
     case 2
-        [phi, Pred, SeqS] = tqtl_opt2(data_array, max_idx, handle);
+        [phi, Pred, SeqS] = tqtl_opt2(data_array, max_idx, handles;
         [rob, aux] = Persephone.monitor(phi, Pred, seqS);
         set(handles.rob_result, 'String', num2str(rob));
     case 3
@@ -251,7 +251,7 @@ switch selected_opt
 end
 
 %% -- Individual dispatches.
-function [phi, Pred, SeqS] = tqtl_opt1(data_array, max_idx, handle)
+function [phi, Pred, SeqS] = tqtl_opt1(data_array, max_idx, handles)
 % Setup opt1
 % Car permanance: Rip off from DATE2019 Cyclist demo
 probs =[];
@@ -268,13 +268,13 @@ end
 phi = 'phi := []( @ Var_x ( cyclist_a -> []( ({ Var_x>=0 }/\{ Var_x<=5 } ) -> cyclist_b ) ) )';
 Pred(1).str = 'cyclist_a';
 Pred(1).A = [-1 0];
-Pred(1).b = [-handle.thresh_b1];
+Pred(1).b = [-handles.thresh_b1];
 Pred(2).str = 'cyclist_b';
 Pred(2).A = [-1 0];
-Pred(2).b = [-handle.thresh_b2];
+Pred(2).b = [-handles.thresh_b2];
 SeqS=[probs, probs];
 
-function [phi, Pred, SeqS] = tqtl_opt2(data_array, max_idx, handle)
+function [phi, Pred, SeqS] = tqtl_opt2(data_array, max_idx, handles)
 % Setup opt2
 probs =[];
 for i= 1: max_idx
@@ -290,13 +290,13 @@ end
 phi = 'phi := []( @ Var_x ( pedestrian_a -> []( ({ Var_x>=0 }/\{ Var_x<=10 } ) -> pedestrian_b ) ) )';
 Pred(1).str = 'pedestrian_a';
 Pred(1).A = [-1 0];
-Pred(1).b = [-handle.thresh_b1];
+Pred(1).b = [-handles.thresh_b1];
 Pred(2).str = 'pedestrian_b';
 Pred(2).A = [-1 0];
-Pred(2).b = [-handle.thresh_b2];
+Pred(2).b = [-handles.thresh_b2];
 SeqS=[probs, probs];
 
-function [phi, Pred, SeqS] = tqtl_opt3(data_array, max_idx, handle)
+function [phi, Pred, SeqS] = tqtl_opt3(data_array, max_idx, handles)
 % Setup opt3
 % Misclassification: Ripoff of DATE2019 demo
 
@@ -348,16 +348,16 @@ end
 phi='[]( @ Var_x ( cycle_a -> [](  ( { Var_x>=0 }/\{ Var_x<=5 } ) -> ( cycle_b \/ ( close_c /\ ped_b ) ) )  ) )';
 Pred(1).str = 'cycle_a';
 Pred(1).A = [-1 0];
-Pred(1).b = [-handle.thresh_b1];
+Pred(1).b = [-handles.thresh_b1];
 Pred(2).str = 'cycle_b';
 Pred(2).A = [-1 0];
-Pred(2).b = [-handle.thresh_b2];
+Pred(2).b = [-handles.thresh_b2];
 Pred(3).str = 'close_c';
 Pred(3).A = [0 -1;0 1];
-Pred(3).b = [0;handle.thresh_b3];
+Pred(3).b = [0;handles.thresh_b3];
 Pred(4).str = 'ped_b';
 Pred(4).A = [0 -1];
-Pred(4).b = [-handle.thresh_b2];
+Pred(4).b = [-handles.thresh_b2];
 SeqS=[cyclistProb,pedestrianProb];
 
 
