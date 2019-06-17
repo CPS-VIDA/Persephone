@@ -146,7 +146,12 @@ function browse_file_Callback(hObject, eventdata, handles)
 % file_csv = uigetfile({'*.*','All Files'}, 'Select CSV file containing data stream');
 [baseName, folder] = uigetfile({'*.*','All Files'}, 'Select CSV file containing data stream');
 file_csv = fullfile(folder, baseName);
-handles.rawdata = readmatrix(file_csv);
+% handles.rawdata = readmatrix(file_csv);
+% CSV Data provided is of the form:
+% Frame Index, xmin, ymin, xmax, ymax, label, probability
+fid = fopen(file_csv);
+handles.rawdata = textscan(fid, '%d %f %f %f %f %s %f', 'Delimiter', ',');
+fclose(fid);
 handles.filename = file_csv;
 guidata(hObject, handles);
 selected_file_Callback(hObject, eventdata, handles);
@@ -189,25 +194,34 @@ function run_button_Callback(hObject, eventdata, handles)
 
 % First get the raw data
 rawdata = handles.rawdata;
-[rawdata_rows, ~] = size(rawdata);
+% [rawdata_rows, ~] = size(rawdata);
+[rawdata_rows, ~] = size(rawdata{1});
+
 % Let's convert the data from a matrix to an array of structs
 data_array = {};
 prev_idx = 0;
 boxes = [];
 max_idx = 0;
 for i = 1:rawdata_rows
-    idx = rawdata(i,1);
+%     idx = rawdata(i,1);
+    idx = rawdata{1}(i);
     if prev_idx ~= idx
         data_array{prev_idx+1,1}=boxes;
         boxes = [];
         prev_idx = idx;
     end
-    data_xmin = rawdata(i,2);
-    data_ymin = rawdata(i,3);
-    data_xmax = rawdata(i,4);
-    data_ymax = rawdata(i,5);
-    label_type = rawdata(i, 6);
-    probability = rawdata(i, 7);
+%     data_xmin = rawdata(i,2);
+%     data_ymin = rawdata(i,3);
+%     data_xmax = rawdata(i,4);
+%     data_ymax = rawdata(i,5);
+%     label_type = rawdata(i, 6);
+%     probability = rawdata(i, 7);
+    data_xmin = rawdata{2}(i);
+    data_ymin = rawdata{3}(i);
+    data_xmax = rawdata{4}(i);
+    data_ymax = rawdata{5}(i);
+    label_type = rawdata{6}(i)
+    probability = rawdata{7}(i);
     data_center = [(data_xmin+data_xmax)/2,(data_ymin+data_ymax)/2];
     
     box=struct(...
@@ -220,7 +234,7 @@ for i = 1:rawdata_rows
 end
 % Now, data_array contains a cell aray indexing frame to all the boxes
 % (structs) detected in that frame.
-
+celldisp(data_array);
 %% Specific Processing of data and dispatching to Persephone.monitor
 selected_opt = handles.select_opt;
 switch selected_opt
@@ -238,7 +252,7 @@ switch selected_opt
         disp('Case 3');
         % Cyclist-pedestrian misclassification
         phi ='[]( @ Var_x ( cycle_a -> [](  ( { Var_x>=0 }/\{ Var_x<=5 } ) -> ( cycle_b \/ ( close /\ ped_b ) ) )  ) )';
-
+        
         Pred(1).str = 'cycl07';
         Pred(1).A = [-1 0];
         Pred(1).b = [-handles.thresh_b1];
@@ -259,11 +273,12 @@ end
 function [phi, Pred, SeqS] = tqtl_opt1(data_array, max_idx, handles)
 % Setup opt1
 % Car permanance: Rip off from DATE2019 Cyclist demo
-probs =[];
+probs = [];
 for i= 1: max_idx
     p=0;
     sz=size(data_array{i});
     for j=1:sz(1)
+        data_array{i}(j).label
         if strcmp(data_array{i}(j).label,'car')
             p=data_array{i}(j).probability;
         end
