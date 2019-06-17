@@ -89,8 +89,8 @@ opt1_desc = [...
     'At every time step, a cyclist remains a cyclist across frames. ', newline, ...
     'Here, if the object tracking algorithm detects a cyclist with probability greater than "a", ', ...
     'the algorithm continues detecting the cyclist with probability "b" for the next 5 frames. ', newline, newline,...
-    'phi := []( @ Var_x ( cyclist_a -> []( ({ Var_x>=0 }/\{ Var_x<=5 } ) -> cyclist_b ) ) ).', newline, ...
-    'The two configurable parameters "a" and "b" (denoted by "cyclist_a" and "cyclist_b" above), can be set below (first two boxes).'];
+    'phi := []( @ Var_x ( car_a -> []( ({ Var_x>=0 }/\{ Var_x<=5 } ) -> car_b ) ) ).', newline, ...
+    'The two configurable parameters "a" and "b" (denoted by "car_a" and "car_b" above), can be set below (first two boxes).'];
 
 opt2_desc = [...
     'Pedestrians should not move like Superman.', newline,...
@@ -129,7 +129,7 @@ function select_sanity_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-tqtl_options = {'Permanence: a cyclist remains a cyclist across frames.'; ...
+tqtl_options = {'Permanence: a car remains a car across frames.'; ...
     'Kinematics: pedestrians do not move like Superman.';
     'Misclassification: A cyclist may be detected as a pedestrian.'; ...
     'Temporal Evolution: sizes of bounding boxes change in relation to motion.'; ... % TODO(andy): I am not sure how to do this
@@ -260,17 +260,17 @@ for i= 1: max_idx
     p=0;
     sz=size(data_array{i});
     for j=1:sz(1)
-        if strcmp(data_array{i}(j).label,'cyclist')
+        if strcmp(data_array{i}(j).label,'car')
             p=data_array{i}(j).probability;
         end
     end
     probs =[probs;p];
 end
-phi = 'phi := []( @ Var_x ( cyclist_a -> []( ({ Var_x>=0 }/\{ Var_x<=5 } ) -> cyclist_b ) ) )';
-Pred(1).str = 'cyclist_a';
+phi = 'phi := []( @ Var_x ( car_a -> []( ({ Var_x>=0 }/\{ Var_x<=5 } ) -> car_b ) ) )';
+Pred(1).str = 'car_a';
 Pred(1).A = [-1 0];
 Pred(1).b = [-1*handles.thresh_b1];
-Pred(2).str = 'cyclist_b';
+Pred(2).str = 'car_b';
 Pred(2).A = [-1 0];
 Pred(2).b = [-1*handles.thresh_b2];
 SeqS=[probs, probs];
